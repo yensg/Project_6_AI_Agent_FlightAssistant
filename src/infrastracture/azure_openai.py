@@ -1,16 +1,17 @@
 from ..utils.logger import setup_logger
 from ..core.config import get_settings
 from openai import AsyncAzureOpenAI
-from ..models.orchestrator import ConversationContext
+# from ..models.orchestrator import ConversationContext
 from typing import Dict, Any, List
 import json
 from ..schemas.context.canonical_schema import CANONICAL_CONTEXT_UPDATE_SCHEMA
-from ..schemas.context.typed_schema import ContextUpdate
+from ..schemas.context.typed_schema import ContextUpdate, ConversationContext
 from pydantic import ValidationError
 from openai.types.chat import ChatCompletionUserMessageParam, ChatCompletionMessageParam, ChatCompletionSystemMessageParam
 from ..schemas.tools import FLIGHT_TOOLS
 from ..schemas.context.json_schema import CONTEXT_UPDATE_JSON_SCHEMA
 from openai.types.shared_params.response_format_json_schema import ResponseFormatJSONSchema
+from ..schemas.context.updater import update_context
 
 logger = setup_logger(__name__)
 
@@ -247,24 +248,27 @@ class AzureOpenAIService:
 
         # Case 1: model requested a tool
         if assistant_message.tool_calls:
-            return await self._handle_tool_call(messages, assistant_message)
+            # return await self._handle_tool_call(messages, assistant_message)
+            return await self._handle_tool_call(message, context, messages, assistant_message)
 
         # Case 2: model answered directly in content
         content = assistant_message.content or ""
 
         extracted = await self.extract_message_data_llm(message, context)
+        updated_context = update_context(context, extracted) # we use the extract_message_data_llm() result which is in ContextUpdate format to run update_context which also uses ContextUpdate format
 
         return {
             "decision_type": "final",
-            "context_update": extracted,
-            "response": content,
+            "context_update": updated_context, # use this to update context at orchestrator.py
+            "response": content, # use this to append message at orchestrator.py and also return this response to frontend
         }
 
     async def extract_message_data_llm(
         self,
         message: str,
         context: ConversationContext
-    ) -> Dict[str, Any]:
+    ) -> ContextUpdate:
+    # ) -> Dict[str, Any]:
 
 #         prompt = f"""
 # You are extracting structured flight assistant context updates.
@@ -317,8 +321,9 @@ class AzureOpenAIService:
             return ContextUpdate().model_dump()
 
         try:
-            validated = ContextUpdate.model_validate(raw_data)
-            return validated.model_dump(exclude_none=True)
+            validated = ContextUpdate.model_validate(raw_data) # Since _get_text_completion() returns CONTEXT_UPDATE_JSON_SCHEMA format, we use this validation to convert it back to ContextUpdate format.
+            # return validated.model_dump(exclude_none=True)
+            return validated
         except ValidationError as e:
             logger.error("ContextUpdate validation failed: %s", e)
             logger.error("Raw LLM JSON: %s", raw_data)
@@ -386,6 +391,8 @@ class AzureOpenAIService:
 
     async def _handle_tool_call(
         self,
+        message: str,
+        context: ConversationContext,
         messages: List[ChatCompletionMessageParam],
         assistant_message
     ) -> Dict[str, Any]:
@@ -449,11 +456,33 @@ class AzureOpenAIService:
 
         final_text = final_response.choices[0].message.content or ""
 
+        # return {
+        #     "decision_type": "tool_call",
+        #     "tool_name": tool_name,
+        #     "tool_args": tool_args,
+        #     "tool_result": tool_result,
+        #     "response": final_text,
+        # }
+
+        extracted = await self.extract_message_data_llm(message, context)
+        updated_context = update_context(context, extracted)
+
+        # enrich with tool info
+        updated_context.memory.setdefault("tool_state", {})
+        updated_context.memory["tool_state"]["last_tool"] = {
+            "name": tool_name,
+            "args": tool_args,
+            "result": tool_result,
+        }
+        # updated_context.memory["last_tool_name"] = tool_name
+        # updated_context.memory["last_tool_args"] = tool_args
+
         return {
             "decision_type": "tool_call",
             "tool_name": tool_name,
             "tool_args": tool_args,
             "tool_result": tool_result,
+            "context_update": updated_context,
             "response": final_text,
         }
 

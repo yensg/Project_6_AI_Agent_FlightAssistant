@@ -1,5 +1,4 @@
 # src/schemas/context/canonical_schema.py
-
 CANONICAL_CONTEXT_UPDATE_SCHEMA = {
     "domain": "flight",
     "intent": [

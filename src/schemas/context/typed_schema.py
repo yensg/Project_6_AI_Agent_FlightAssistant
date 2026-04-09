@@ -27,10 +27,8 @@
 #     memory: ExtractedMemory = Field(default_factory=ExtractedMemory)
 
 # src/schemas/context/typed_schema.py
-
 from typing import Optional, Literal, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator
-
 
 FlightIntent = Literal[
     "get_flight_details",

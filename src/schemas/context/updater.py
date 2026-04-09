@@ -1,7 +1,5 @@
 # src/schemas/context/updater.py
-
 from .typed_schema import ContextUpdate, ConversationContext
-
 
 def update_context(
     context: ConversationContext,
