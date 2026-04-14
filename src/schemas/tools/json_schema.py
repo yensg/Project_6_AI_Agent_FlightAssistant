@@ -1,3 +1,5 @@
+from ..tools.typed_schema import SearchFlightsArgs
+
 GET_FLIGHT_DETAILS_TOOL = {
     "type": "function",
     "function": {
@@ -17,30 +19,67 @@ GET_FLIGHT_DETAILS_TOOL = {
     }
 }
 
+# SEARCH_FLIGHTS_TOOL = {
+#     "type": "function",
+#     "function": {
+#         "name": "search_flights",
+#         "description": "Search flights by departure airport, arrival airport, direction, date, or city pair.",
+#         "parameters": {
+#             "type": "object",
+#             "properties": {
+#                 "departure_airport": {"type": "string"},
+#                 "arrival_airport": {"type": "string"},
+#                 "airport": {"type": "string"},
+#                 "direction": {
+#                     "type": "string",
+#                     "enum": ["arrival", "departure"]
+#                 },
+#                 "origin_city": {"type": "string"},
+#                 "destination_city": {"type": "string"},
+#                 "date": {"type": "string"},
+#                 "time_from": {"type": "string"},
+#                 "time_to": {"type": "string"},
+#                 "max_results": {"type": "integer"}
+#             },
+#             "required": []
+#         }
+#     }
+# }
+
+# SEARCH_FLIGHTS_TOOL = {
+#     "type": "function",
+#     "function": {
+#         "name": "search_flights",
+#         "description": "Search flights by airport and time window.",
+#         "parameters": {
+#             "type": "object",
+#             "properties": {
+#                 "airport": {"type": "string"},
+#                 "time_from": {"type": "integer"},
+#                 "time_to": {"type": "integer"},
+#
+#                 "departure_airport": {"type": "string"},
+#                 "arrival_airport": {"type": "string"},
+#                 "direction": {
+#                     "type": "string",
+#                     "enum": ["arrival", "departure"]
+#                 },
+#                 "origin_city": {"type": "string"},
+#                 "destination_city": {"type": "string"},
+#                 "date": {"type": "string"},
+#                 "max_results": {"type": "integer"}
+#             },
+#             "required": ["airport", "time_from", "time_to"]
+#         }
+#     }
+# }
+
 SEARCH_FLIGHTS_TOOL = {
     "type": "function",
     "function": {
         "name": "search_flights",
-        "description": "Search flights by departure airport, arrival airport, direction, date, or city pair.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "departure_airport": {"type": "string"},
-                "arrival_airport": {"type": "string"},
-                "airport": {"type": "string"},
-                "direction": {
-                    "type": "string",
-                    "enum": ["arrival", "departure"]
-                },
-                "origin_city": {"type": "string"},
-                "destination_city": {"type": "string"},
-                "date": {"type": "string"},
-                "time_from": {"type": "string"},
-                "time_to": {"type": "string"},
-                "max_results": {"type": "integer"}
-            },
-            "required": []
-        }
+        "description": "Search flights",
+        "parameters": SearchFlightsArgs.model_json_schema()
     }
 }
 

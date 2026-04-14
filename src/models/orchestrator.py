@@ -17,26 +17,26 @@ class Message(BaseModel):
     #         "timestamp": self.timestamp.isoformat()
     #     }
 
-class ConversationContext(BaseModel):
-    user_id: str
-    memory: Dict[str, Any] = {}
-    session_id: Optional[str] = None
-    preferences: Dict[str, Any] = {}
-    last_intent: Optional[str] = None
-    last_entities: Dict[str, Any] = {}
-
-    class Config:
-        arbitrary_types_allowed = True  # Allow arbitrary types
-
-    # def to_dict(self) -> Dict:
-    #     return {
-    #         "user_id": self.user_id,
-    #         "memory": self.memory,
-    #         "session_id": self.session_id,
-    #         "preferences": self.preferences,
-    #         "last_intent": self.last_intent,
-    #         "last_entities": self.last_entities
-    #     }
+# this is already duplicated under context.typed_schema.py
+# class ConversationContext(BaseModel):
+#     user_id: str
+#     memory: Dict[str, Any] = {}
+#     session_id: Optional[str] = None
+#     preferences: Dict[str, Any] = {}
+#     last_intent: Optional[str] = None
+#     last_entities: Dict[str, Any] = {}
+#
+#     class Config:
+#         arbitrary_types_allowed = True  # Allow arbitrary types
+#     def to_dict(self) -> Dict:
+#         return {
+#             "user_id": self.user_id,
+#             "memory": self.memory,
+#             "session_id": self.session_id,
+#             "preferences": self.preferences,
+#             "last_intent": self.last_intent,
+#             "last_entities": self.last_entities
+#         }
 
 class Conversation(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
