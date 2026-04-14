@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Any, List
 from datetime import datetime, timezone, timedelta
 
-from openai import api_key
+# from openai import api_key
 
 from ..models.orchestrator import Conversation
 import logging
@@ -9,6 +9,8 @@ from ..core.config import get_settings
 
 from semantic_kernel.kernel import Kernel
 from ..infrastracture.azure_openai import AzureOpenAIService
+
+from ..skills.flight_skill import FlightSkill
 
 session_conversations: Dict[str, tuple[Conversation, datetime]] = {}
 
@@ -25,3 +27,5 @@ class Orchestrator:
         )
 
         self.azure_service = AzureOpenAIService(self.kernel)
+        self.flight_skill = FlightSkill()
+        self.kernel.add_plugin(self.flight_skill, plugin_name="flight_skill")

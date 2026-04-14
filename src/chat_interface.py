@@ -16,6 +16,7 @@ async def call_api(endpoint: str, method: str = "POST", data: Optional[Dict[str,
     """Make API calls to FastAPI backend."""
     async with httpx.AsyncClient(timeout=30.0) as client:
         url = f"{API_BASE_URL}{endpoint}"
+        # Ensures data is always a dictionary so it can be safely passed to params or json.
         data = data or {}
         try:
             if method == "GET":

@@ -8,10 +8,12 @@ from ..schemas.context.canonical_schema import CANONICAL_CONTEXT_UPDATE_SCHEMA
 from ..schemas.context.typed_schema import ContextUpdate, ConversationContext
 from pydantic import ValidationError
 from openai.types.chat import ChatCompletionUserMessageParam, ChatCompletionMessageParam, ChatCompletionSystemMessageParam
-from ..schemas.tools import FLIGHT_TOOLS
+from ..schemas.tools.json_schema import FLIGHT_TOOLS
+from src.schemas.tools.typed_schema import TOOL_ARG_MODELS
 from ..schemas.context.json_schema import CONTEXT_UPDATE_JSON_SCHEMA
 from openai.types.shared_params.response_format_json_schema import ResponseFormatJSONSchema
 from ..schemas.context.updater import update_context
+from semantic_kernel.functions import KernelArguments
 
 logger = setup_logger(__name__)
 
@@ -318,7 +320,7 @@ class AzureOpenAIService:
             raw_data = json.loads(response)
         except json.JSONDecodeError:
             logger.error("Invalid JSON from LLM: %s", response)
-            return ContextUpdate().model_dump()
+            return ContextUpdate()
 
         try:
             validated = ContextUpdate.model_validate(raw_data) # Since _get_text_completion() returns CONTEXT_UPDATE_JSON_SCHEMA format, we use this validation to convert it back to ContextUpdate format.
@@ -327,7 +329,7 @@ class AzureOpenAIService:
         except ValidationError as e:
             logger.error("ContextUpdate validation failed: %s", e)
             logger.error("Raw LLM JSON: %s", raw_data)
-            return ContextUpdate().model_dump()
+            return ContextUpdate()
 
     # async def _get_text_completion(self, prompt: str) -> str:
     #     try:
@@ -391,7 +393,7 @@ class AzureOpenAIService:
 
     async def _handle_tool_call(
         self,
-        message: str,
+        message: str, # can remove this but it's not being used
         context: ConversationContext,
         messages: List[ChatCompletionMessageParam],
         assistant_message
@@ -408,20 +410,76 @@ class AzureOpenAIService:
                 "decision_type": "error",
                 "response": "The model returned invalid tool arguments."
             }
+        # fall back to raw tool_args due to kernel_args = KernelArguments(**clean_tool_args)
+        clean_tool_args = tool_args
 
-        # execute selected tool
-        if tool_name == "get_flight_details":
-            tool_result = await self.get_flight_details(**tool_args)
-        elif tool_name == "search_flights":
-            tool_result = await self.search_flights(**tool_args)
-        elif tool_name == "count_flights":
-            tool_result = await self.count_flights(**tool_args)
-        elif tool_name == "list_flights":
-            tool_result = await self.list_flights(**tool_args)
-        else:
+        model_cls = TOOL_ARG_MODELS.get(tool_name)
+
+        if model_cls:
+            try:
+                validated_args = model_cls.model_validate(tool_args)
+                # So we replaced the raw tool_args with the validated_args
+                clean_tool_args = validated_args.model_dump(exclude_none=True)
+            except ValidationError:
+                logger.exception("Tool args validation failed")
+                return {
+                    "decision_type": "error",
+                    "response": f"Invalid arguments for {tool_name}"
+                }
+
+        # # local function call
+        # if tool_name == "get_flight_details":
+        #     tool_result = await self.get_flight_details(**tool_args)
+        # elif tool_name == "search_flights":
+        #     tool_result = await self.search_flights(**tool_args)
+        # elif tool_name == "count_flights":
+        #     tool_result = await self.count_flights(**tool_args)
+        # elif tool_name == "list_flights":
+        #     tool_result = await self.list_flights(**tool_args)
+        # else:
+        #     return {
+        #         "decision_type": "error",
+        #         "response": f"Unknown tool: {tool_name}"
+        #     }
+
+        # # Method 1: direct call
+        # tool_map = {
+        #     "get_flight_details": self.flight_skill.get_flight_details,
+        #     "search_flights": self.flight_skill.search_flights,
+        #     "count_flights": self.flight_skill.count_flights,
+        #     "list_flights": self.flight_skill.list_flights,
+        # }
+        #
+        # tool_fn = tool_map.get(tool_name)
+        # if not tool_fn:
+        #     return {
+        #         "decision_type": "error",
+        #         "response": f"Unknown tool: {tool_name}"
+        #     }
+        #
+        # tool_result = await tool_fn(**tool_args)
+
+        # Method 2: SK call
+        try:
+            kernel_args = KernelArguments(**clean_tool_args) # without clean_tool_args = tool_args this will have error
+
+            tool_result = await self.kernel.invoke(
+                plugin_name="flight_skill",
+                function_name=tool_name,
+                arguments=kernel_args
+            )
+
+            # SK may return a FunctionResult-like object, not plain dict/string
+            if hasattr(tool_result, "value"):
+                serializable_result = tool_result.value
+            else:
+                serializable_result = str(tool_result)
+
+        except Exception:
+            logger.exception("Kernel tool invocation failed for %s", tool_name)
             return {
                 "decision_type": "error",
-                "response": f"Unknown tool: {tool_name}"
+                "response": f"Failed to execute tool: {tool_name}",
             }
 
         # send tool result back to model
@@ -443,10 +501,11 @@ class AzureOpenAIService:
             {
                 "role": "tool",
                 "tool_call_id": tool_call.id,
-                "content": json.dumps(tool_result),
+                "content": json.dumps(serializable_result),
             }
         ]
 
+        # this is to produce final natural-language answer
         final_response = await self.client.chat.completions.create(
             model=self.deployment_name,
             messages=followup_messages,
@@ -464,15 +523,15 @@ class AzureOpenAIService:
         #     "response": final_text,
         # }
 
-        extracted = await self.extract_message_data_llm(message, context)
-        updated_context = update_context(context, extracted)
-
         # enrich with tool info
+        updated_context = context.model_copy(deep=True)
+        # extracted = await self.extract_message_data_llm(message, context)
+        # updated_context = update_context(context, extracted)
         updated_context.memory.setdefault("tool_state", {})
         updated_context.memory["tool_state"]["last_tool"] = {
             "name": tool_name,
-            "args": tool_args,
-            "result": tool_result,
+            "args": clean_tool_args,
+            "result": serializable_result,
         }
         # updated_context.memory["last_tool_name"] = tool_name
         # updated_context.memory["last_tool_args"] = tool_args
@@ -480,100 +539,99 @@ class AzureOpenAIService:
         return {
             "decision_type": "tool_call",
             "tool_name": tool_name,
-            "tool_args": tool_args,
-            "tool_result": tool_result,
+            "tool_args": clean_tool_args,
+            "tool_result": serializable_result,
             "context_update": updated_context,
             "response": final_text,
         }
 
     # ----- stub tool functions -----
-
-    async def get_flight_details(
-        self,
-        flight_number: str | None = None,
-        callsign: str | None = None,
-        icao24: str | None = None,
-        date: str | None = None,
-        airport: str | None = None,
-    ) -> Dict[str, Any]:
-        return {
-            "flight_number": flight_number,
-            "callsign": callsign,
-            "icao24": icao24,
-            "date": date,
-            "airport": airport,
-            "status": "scheduled"
-        }
-
-    async def search_flights(
-        self,
-        departure_airport: str | None = None,
-        arrival_airport: str | None = None,
-        airport: str | None = None,
-        direction: str | None = None,
-        origin_city: str | None = None,
-        destination_city: str | None = None,
-        date: str | None = None,
-        time_from: str | None = None,
-        time_to: str | None = None,
-        max_results: int | None = 10,
-    ) -> Dict[str, Any]:
-        return {
-            "matches": [],
-            "filters": {
-                "departure_airport": departure_airport,
-                "arrival_airport": arrival_airport,
-                "airport": airport,
-                "direction": direction,
-                "origin_city": origin_city,
-                "destination_city": destination_city,
-                "date": date,
-                "time_from": time_from,
-                "time_to": time_to,
-                "max_results": max_results,
-            }
-        }
-
-    async def count_flights(
-        self,
-        airport: str | None = None,
-        direction: str | None = None,
-        departure_airport: str | None = None,
-        arrival_airport: str | None = None,
-        date: str | None = None,
-    ) -> Dict[str, Any]:
-        return {
-            "count": 0,
-            "filters": {
-                "airport": airport,
-                "direction": direction,
-                "departure_airport": departure_airport,
-                "arrival_airport": arrival_airport,
-                "date": date,
-            }
-        }
-
-    async def list_flights(
-        self,
-        airport: str | None = None,
-        direction: str | None = None,
-        departure_airport: str | None = None,
-        arrival_airport: str | None = None,
-        date: str | None = None,
-        time_from: str | None = None,
-        time_to: str | None = None,
-        max_results: int | None = 10,
-    ) -> Dict[str, Any]:
-        return {
-            "flights": [],
-            "filters": {
-                "airport": airport,
-                "direction": direction,
-                "departure_airport": departure_airport,
-                "arrival_airport": arrival_airport,
-                "date": date,
-                "time_from": time_from,
-                "time_to": time_to,
-                "max_results": max_results,
-            }
-        }
+    # async def get_flight_details(
+    #     self,
+    #     flight_number: str | None = None,
+    #     callsign: str | None = None,
+    #     icao24: str | None = None,
+    #     date: str | None = None,
+    #     airport: str | None = None,
+    # ) -> Dict[str, Any]:
+    #     return {
+    #         "flight_number": flight_number,
+    #         "callsign": callsign,
+    #         "icao24": icao24,
+    #         "date": date,
+    #         "airport": airport,
+    #         "status": "scheduled"
+    #     }
+    #
+    # async def search_flights(
+    #     self,
+    #     departure_airport: str | None = None,
+    #     arrival_airport: str | None = None,
+    #     airport: str | None = None,
+    #     direction: str | None = None,
+    #     origin_city: str | None = None,
+    #     destination_city: str | None = None,
+    #     date: str | None = None,
+    #     time_from: str | None = None,
+    #     time_to: str | None = None,
+    #     max_results: int | None = 10,
+    # ) -> Dict[str, Any]:
+    #     return {
+    #         "matches": [],
+    #         "filters": {
+    #             "departure_airport": departure_airport,
+    #             "arrival_airport": arrival_airport,
+    #             "airport": airport,
+    #             "direction": direction,
+    #             "origin_city": origin_city,
+    #             "destination_city": destination_city,
+    #             "date": date,
+    #             "time_from": time_from,
+    #             "time_to": time_to,
+    #             "max_results": max_results,
+    #         }
+    #     }
+    #
+    # async def count_flights(
+    #     self,
+    #     airport: str | None = None,
+    #     direction: str | None = None,
+    #     departure_airport: str | None = None,
+    #     arrival_airport: str | None = None,
+    #     date: str | None = None,
+    # ) -> Dict[str, Any]:
+    #     return {
+    #         "count": 0,
+    #         "filters": {
+    #             "airport": airport,
+    #             "direction": direction,
+    #             "departure_airport": departure_airport,
+    #             "arrival_airport": arrival_airport,
+    #             "date": date,
+    #         }
+    #     }
+    #
+    # async def list_flights(
+    #     self,
+    #     airport: str | None = None,
+    #     direction: str | None = None,
+    #     departure_airport: str | None = None,
+    #     arrival_airport: str | None = None,
+    #     date: str | None = None,
+    #     time_from: str | None = None,
+    #     time_to: str | None = None,
+    #     max_results: int | None = 10,
+    # ) -> Dict[str, Any]:
+    #     return {
+    #         "flights": [],
+    #         "filters": {
+    #             "airport": airport,
+    #             "direction": direction,
+    #             "departure_airport": departure_airport,
+    #             "arrival_airport": arrival_airport,
+    #             "date": date,
+    #             "time_from": time_from,
+    #             "time_to": time_to,
+    #             "max_results": max_results,
+    #         }
+    #     }
