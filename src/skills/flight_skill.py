@@ -72,7 +72,7 @@ class FlightSkill:
         # max_results: int | None = 10,
     ) -> Dict[str, Any]:
         params = {
-            "airport": airport,
+            "airport": "WSSS",
             "begin": time_from,
             "end": time_to,
         }

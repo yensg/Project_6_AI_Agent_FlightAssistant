@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 import uuid
 from typing import Dict, List, Optional, Any
+from ..schemas.context.typed_schema import ConversationContext
 
 class Message(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -40,7 +41,7 @@ class Message(BaseModel):
 
 class Conversation(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
+    # user_id: str
     context: ConversationContext
     messages: List[Message] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
