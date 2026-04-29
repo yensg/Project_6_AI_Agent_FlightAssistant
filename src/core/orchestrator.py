@@ -76,23 +76,35 @@ class Orchestrator:
             self.logger.error(f"Error saving conversation state: {str(e)}")
             raise
 
-    async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
-        """Retrieve a conversation from session storage if not expired."""
+    async def get_or_create_conversation(self, conversation_id: str) -> Conversation:
+        """Retrieve a conversation from session storage if not expired. Otherwise, create a new session"""
         self._cleanup_expired_sessions()
+
         if conversation_id in session_conversations:
-            conversation, last_active = session_conversations[conversation_id]
-            if datetime.now(timezone.utc) - last_active <= SESSION_TIMEOUT:
-                # Update last activity time
-                session_conversations[conversation_id] = (conversation, datetime.now(timezone.utc))
-                return conversation
-        return None
+            conversation, _ = session_conversations[conversation_id]
+            session_conversations[conversation_id] = (
+                conversation,
+                datetime.now(timezone.utc)
+            )
+            return conversation
+
+        conversation = Conversation(
+            id=conversation_id,
+            context=ConversationContext()
+        )
+        session_conversations[conversation_id] = (
+            conversation,
+            datetime.now(timezone.utc)
+        )
+        return conversation
 
     async def process_user_input(
             self,
             conversation_id: str,
             user_message: str,
     ) -> Dict[str, Any]:
-        conversation = await self.get_conversation(conversation_id)
+        conversation = await self.get_or_create_conversation(conversation_id)
+        # but what if there's no historical session based on that id?
 
         # save user message first
         conversation.add_message(content=user_message, role="user")
@@ -134,7 +146,7 @@ class Orchestrator:
                 "conversation_id": conversation_id,
                 "response": f"Error: {str(e)}",
                 "decision_type": "error",
-                "context": conversation.context.model_dump(),
+                "context": conversation.context.model_dump() if conversation else {},
                 "tool_name": None,
                 "tool_args": None,
                 "tool_result": None,
