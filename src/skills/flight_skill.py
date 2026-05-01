@@ -2,6 +2,8 @@ from semantic_kernel.functions import kernel_function
 from typing import Dict, Any
 import httpx
 import logging
+
+from ..core.config import get_settings
 from ..utils.logger import setup_logger
 
 # API_FLIGHT_URL = "https://opensky-network.org/api/flights/all"
@@ -21,7 +23,8 @@ class FlightSkill:
     #     self.kernel.add_function(self.count_flights)
     #     self.kernel.add_function(self.list_flights)
 
-    API_FLIGHT_URL = "https://opensky-network.org/api/flights/all"
+    # API_FLIGHT_URL = "https://opensky-network.org/api/flights/all"
+    API_FLIGHT_URL = "http://api.aviationstack.com/v1/flights"
     HEADERS = {
         "Accept": "application/json"
     }
@@ -56,34 +59,48 @@ class FlightSkill:
     #         }
     #     }
 
-    @kernel_function(name="search_flights", description="Search flights for a required airport and time window")
+    @kernel_function(name="search_flights", description="Search recent/current flights arriving at an airport using IATA airport code")
     async def search_flights(
         self,
-        airport: str,
-        time_from: int,
-        time_to: int,
+        # airport: str,
+        # time_from: int,
+        # time_to: int,
+        # departure_airport: str | None = None,
+        # arrival_airport: str | None = None,
+        # direction: str | None = None,
+        # origin_city: str | None = None,
+        # destination_city: str | None = None,
+        # date: str | None = None,
+        airport: str = "SIN",
+        max_results: int | None = 5,
 
-        departure_airport: str | None = None,
-        arrival_airport: str | None = None,
-        direction: str | None = None,
-        origin_city: str | None = None,
-        destination_city: str | None = None,
-        date: str | None = None,
-        # max_results: int | None = 10,
     ) -> Dict[str, Any]:
+        # params = {
+        #     "airport": "WSSS",
+        #     "begin": time_from,
+        #     "end": time_to,
+        # }
+        settings = get_settings()
+
         params = {
-            "airport": "WSSS",
-            "begin": time_from,
-            "end": time_to,
+            "access_key": settings.aviationstack_access_key,
+            "arr_iata": airport,
+            "limit": max_results or 5,
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
-                response = await client.get(self.API_FLIGHT_URL, params=params, headers=self.HEADERS)
+                response = await client.get(
+                    self.API_FLIGHT_URL,
+                    params=params,
+                    headers=self.HEADERS
+                )
                 response.raise_for_status()
                 data = response.json()
 
-                logger.info(f"API success, received {len(data) if isinstance(data, list) else 'unknown'} records")
+                flights = data.get("data", [])
+
+                logger.info(f"API success, received {len(flights) if isinstance(flights, list) else 'unknown'} records")
 
             except httpx.HTTPStatusError as e:
                 logger.error(f"HTTP error: {e.response.status_code} - {e.response.text}")
@@ -112,7 +129,17 @@ class FlightSkill:
                     "error": "Invalid JSON response"
                 }
 
-        if not isinstance(data, list):
+            # this is bad
+            # except Exception as e:
+            #     logger.error(f"Unexpected error: {str(e)}")
+            #     return {
+            #         "airport": airport,
+            #         "count": 0,
+            #         "flights": [],
+            #         "error": str(e),
+            #     }
+
+        if not isinstance(flights, list):
             logger.warning("Unexpected API response format")
             return {
                 "airport": airport,
@@ -123,9 +150,9 @@ class FlightSkill:
 
         return {
             "airport": airport,
-            "count": len(data),
+            "count": len(flights),
             # "flights": data[:max_results] if max_results else data
-            "flights": data
+            "flights": flights
         }
 
     # @kernel_function(name="get_flight_details", description="Get details of a flight")

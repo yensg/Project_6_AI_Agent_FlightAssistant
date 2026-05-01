@@ -105,15 +105,27 @@ class SearchFlightsArgs(BaseModel):
             raise ValueError("airport is required")
         return v.strip().upper()
 
+    # @model_validator(mode="after")
+    # def validate_time_window(self):
+    #     now_ts = int(datetime.now(timezone.utc).timestamp())
+    #     if self.time_from < now_ts:
+    #         raise ValueError("time_from must be greater than or equal to now")
+    #     if self.time_to < self.time_from:
+    #         raise ValueError("time_to must be greater than or equal to time_from")
+    #     if self.time_to > self.time_from + 12 * 60 * 60:
+    #         raise ValueError("time_to must be within 12 hours of time_from")
+    #     return self
     @model_validator(mode="after")
-    def validate_time_window(self):
+    def enforce_15_min_window(self):
         now_ts = int(datetime.now(timezone.utc).timestamp())
+
+        # ensure time_from is valid
         if self.time_from < now_ts:
-            raise ValueError("time_from must be greater than or equal to now")
-        if self.time_to < self.time_from:
-            raise ValueError("time_to must be greater than or equal to time_from")
-        if self.time_to > self.time_from + 12 * 60 * 60:
-            raise ValueError("time_to must be within 12 hours of time_from")
+            self.time_from = now_ts
+
+        # 🔴 force 15 min window
+        self.time_to = self.time_from + 15 * 60
+
         return self
 
 class CountFlightsArgs(BaseModel):

@@ -12,7 +12,7 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
-app.mount("/", chainlit_app)
+# app.mount("/", chainlit_app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,9 +27,9 @@ orchestrator = Orchestrator()
 @app.post("/conversations/{conversation_id}/messages")
 async def process_message( conversation_id: str, request: Request, user_input: UserInput):
     try:
-        response = await orchestrator(
+        response = await orchestrator.process_user_input(
             conversation_id = conversation_id,
-            message = user_input.message
+            user_message = user_input.message
         )
         return UserResponse(
             response = response["response"],

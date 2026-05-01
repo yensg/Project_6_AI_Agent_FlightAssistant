@@ -482,7 +482,28 @@ class AzureOpenAIService:
                 "response": f"Failed to execute tool: {tool_name}",
             }
 
-        # send tool result back to model
+        # followup_messages: List[ChatCompletionMessageParam] = [
+        #     *messages,
+        #     {
+        #         "role": "assistant",
+        #         "tool_calls": [
+        #             {
+        #                 "id": tool_call.id,
+        #                 "type": "function",
+        #                 "function": {
+        #                     "name": tool_name,
+        #                     "arguments": raw_args,
+        #                 }
+        #             }
+        #         ]
+        #     },
+        #     {
+        #         "role": "tool",
+        #         "tool_call_id": tool_call.id,
+        #         "content": json.dumps(serializable_result),
+        #     }
+        # ]
+        '''send tool result back to model'''
         followup_messages: List[ChatCompletionMessageParam] = [
             *messages,
             {
@@ -493,7 +514,7 @@ class AzureOpenAIService:
                         "type": "function",
                         "function": {
                             "name": tool_name,
-                            "arguments": raw_args,
+                            "arguments": json.dumps(clean_tool_args),
                         }
                     }
                 ]
@@ -504,6 +525,7 @@ class AzureOpenAIService:
                 "content": json.dumps(serializable_result),
             }
         ]
+
 
         # this is to produce final natural-language answer
         final_response = await self.client.chat.completions.create(
@@ -530,7 +552,7 @@ class AzureOpenAIService:
         updated_context.memory.setdefault("tool_state", {})
         updated_context.memory["tool_state"]["last_tool"] = {
             "name": tool_name,
-            "args": clean_tool_args,
+            "args": clean_tool_args,  # <- converted 15-min args are here
             "result": serializable_result,
         }
         # updated_context.memory["last_tool_name"] = tool_name
