@@ -10,7 +10,8 @@ Yen's AI Agent Flight Assistant is a **stateful, tool-augmented AI flight assist
 * **Semantic Kernel** → tool execution layer
 * **Pydantic** → schema validation
 
-<img src="Assets/Landing Page.png" alt="first_page" width="300"/>
+<img src="Assets/Landing Page.png" alt="first_page" width="500"/>
+<img src="Assets/Landing Page 2.png" alt="first_page" width="500"/>
 
 This system is **NOT a full agentic loop**, but a:
 
