@@ -303,7 +303,7 @@ The project demonstrates how to build an agentic AI application that can:
 
 ---
 
-## 1. Tech Stack
+### 1. Tech Stack
 
 | Layer        | Technology                    | Purpose                                     |
 | ------------ | ----------------------------- | ------------------------------------------- |
@@ -319,7 +319,7 @@ The project demonstrates how to build an agentic AI application that can:
 
 ---
 
-## 2. Project Architecture
+### 2. Project Architecture
 
 ```text
 Chainlit UI
@@ -347,11 +347,11 @@ Final response back to Chainlit
 
 ---
 
-## 3. Recommended Build Sequence
+### 3. Recommended Build Sequence
 
 This is the recommended order to create the project from scratch.
 
-### Step 1 — Create project folder and virtual environment
+#### Step 1 — Create project folder and virtual environment
 
 ```bash
 mkdir Project_6_AI_Agent_FlightAssistant
@@ -363,7 +363,7 @@ python -m ensurepip --upgrade
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-### Step 2 — Initialize Git
+#### Step 2 — Initialize Git
 
 ```bash
 git init
@@ -376,14 +376,14 @@ git remote add origin <repo-url>
 git push -u origin main
 ```
 
-### Step 3 — Install dependencies
+#### Step 3 — Install dependencies
 
 ```bash
 pip install aiohttp openai pydantic pydantic-settings semantic-kernel python-dotenv fastapi uvicorn chainlit httpx
 pip freeze > requirements.txt
 ```
 
-### Step 4 — Create base folder structure
+#### Step 4 — Create base folder structure
 
 ```text
 src/
@@ -416,7 +416,7 @@ src/
 └── main.py
 ```
 
-### Step 5 — Build utility files first
+#### Step 5 — Build utility files first
 
 Create:
 
@@ -427,7 +427,7 @@ src/core/config.py
 
 These are dependencies used by many other files.
 
-### Step 6 — Build data models
+#### Step 6 — Build data models
 
 Create:
 
@@ -446,7 +446,7 @@ Recommended order:
 
 Reason: `Conversation` depends on `Message` and `ConversationContext`.
 
-### Step 7 — Build context schemas
+#### Step 7 — Build context schemas
 
 Create:
 
@@ -466,7 +466,7 @@ Purpose:
 | `json_schema.py`      | Strict JSON schema for structured LLM output             |
 | `updater.py`          | Merge extracted context into stored conversation context |
 
-### Step 8 — Build tool schemas and tool argument validation
+#### Step 8 — Build tool schemas and tool argument validation
 
 Create:
 
@@ -486,7 +486,7 @@ The tool schema is for the LLM.
 
 The typed schema is for your backend.
 
-### Step 9 — Build the skill layer
+#### Step 9 — Build the skill layer
 
 Create:
 
@@ -503,7 +503,7 @@ This layer executes real actions, such as:
 
 This is where external API calls happen.
 
-### Step 10 — Build Azure OpenAI infrastructure layer
+#### Step 10 — Build Azure OpenAI infrastructure layer
 
 Create:
 
@@ -522,7 +522,7 @@ Responsibilities:
 * parse structured output
 * return final response
 
-### Step 11 — Build the agent loop
+#### Step 11 — Build the agent loop (For future improvements)
 
 Create:
 
@@ -549,7 +549,7 @@ async def run(...):
 
 This separates the agent loop from the lower-level Azure OpenAI adapter.
 
-### Step 12 — Build the orchestrator
+#### Step 12 — Build the orchestrator
 
 Create:
 
@@ -581,7 +581,7 @@ process_message():
     save_session()            # update last_active
 ```
 
-### Step 13 — Build FastAPI app
+#### Step 13 — Build FastAPI app
 
 Create:
 
@@ -609,7 +609,7 @@ async def process_message(conversation_id: str, user_input: UserInput):
     return UserResponse(**response)
 ```
 
-### Step 14 — Build Chainlit interface
+#### Step 14 — Build Chainlit interface
 
 Create:
 
@@ -626,7 +626,7 @@ Chainlit responsibilities:
 * render response back to UI
 * attach optional buttons or structured data
 
-### Step 15 — Build main runner
+#### Step 15 — Build main runner
 
 Create:
 
@@ -641,9 +641,9 @@ This starts both servers:
 
 ---
 
-## 4. Installation
+### 4. Installation
 
-### Create virtual environment
+#### Create virtual environment
 
 ```bash
 python3 -m venv .venv
@@ -652,7 +652,7 @@ python -m ensurepip --upgrade
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-### Install libraries
+#### Install libraries
 
 ```bash
 pip install aiohttp openai pydantic pydantic-settings semantic-kernel python-dotenv fastapi uvicorn chainlit httpx
@@ -661,7 +661,7 @@ pip freeze > requirements.txt
 
 ---
 
-## 5. Environment Variables
+### 5. Environment Variables
 
 Create a `.env` file in the project root.
 
@@ -689,7 +689,7 @@ __pycache__/
 
 ---
 
-## 6. Running the App
+### 6. Running the App
 
 ```bash
 python src/main.py
@@ -704,9 +704,9 @@ Chainlit: http://127.0.0.1:8501
 
 ---
 
-## 7. `src/main.py`
+### 7. `src/main.py`
 
-### Root directory setup
+#### Root directory setup
 
 ```python
 from pathlib import Path
@@ -718,7 +718,7 @@ sys.path.insert(0, str(root_dir))
 
 This allows Python to import modules from the project root.
 
-### Run FastAPI programmatically
+#### Run FastAPI programmatically
 
 ```python
 from src.api.app import app
@@ -736,7 +736,7 @@ async def run_fastapi():
     await server.serve()
 ```
 
-### Run Chainlit through CLI
+#### Run Chainlit through CLI
 
 ```python
 import subprocess
@@ -757,7 +757,7 @@ async def run_chainlit():
 
 Chainlit does not expose an async server API like Uvicorn, so it is started through the CLI.
 
-### Run both servers
+#### Run both servers
 
 ```python
 async def main():
@@ -785,13 +785,13 @@ if __name__ == "__main__":
 
 ---
 
-## 8. `src/chat_interface.py`
+### 8. `src/chat_interface.py`
 
 This is the Chainlit server-side UI controller.
 
 It is not a browser frontend file. It runs on the server and controls the chat UI.
 
-### Runtime flow
+#### Runtime flow
 
 ```text
 1. User opens Chainlit UI
@@ -806,7 +806,7 @@ It is not a browser frontend file. It runs on the server and controls the chat U
 10. Chainlit renders response
 ```
 
-### `call_api()`
+#### `call_api()`
 
 ```python
 import httpx
@@ -844,7 +844,7 @@ async def call_api(endpoint: str, method: str = "POST", data: Dict[str, Any] | N
             raise Exception(f"Request failed: {str(e)}")
 ```
 
-### Key point: `httpx` vs `aiohttp`
+#### Key point: `httpx` vs `aiohttp`
 
 | Library   | Behavior                                                          |
 | --------- | ----------------------------------------------------------------- |
@@ -855,7 +855,7 @@ The real difference is lifecycle and response handling.
 
 ---
 
-## 9. Decorators in Chainlit
+### 9. Decorators in Chainlit
 
 Chainlit uses decorators to register lifecycle functions.
 
@@ -893,7 +893,7 @@ def brew_tea():
 
 ---
 
-## 10. `src/api/app.py`
+### 10. `src/api/app.py`
 
 FastAPI receives HTTP requests and forwards them to the orchestrator.
 
@@ -942,7 +942,7 @@ async def process_message(conversation_id: str, user_input: UserInput):
 
 ---
 
-## 11. User Models
+### 11. User Models
 
 ```python
 from pydantic import BaseModel
@@ -975,9 +975,9 @@ means the field is not required.
 
 ---
 
-## 12. Conversation Models
+### 12. Conversation Models
 
-### Message
+#### Message
 
 ```python
 class Message(BaseModel):
@@ -987,7 +987,7 @@ class Message(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 ```
 
-### ConversationContext
+#### ConversationContext
 
 Stores structured memory.
 
@@ -1001,7 +1001,7 @@ class ConversationContext(BaseModel):
     unresolved_slots: List[str] = Field(default_factory=list)
 ```
 
-### Conversation
+#### Conversation
 
 Groups raw messages and structured context.
 
@@ -1024,7 +1024,7 @@ Use `Field(default_factory=list)` instead of `messages: List[Message] = []` to a
 
 ---
 
-## 13. Context Design
+### 13. Context Design
 
 A chat agent needs three things:
 
@@ -1034,7 +1034,7 @@ A chat agent needs three things:
 | Structured memory           | `ConversationContext` |
 | Top-level session container | `Conversation`        |
 
-### Context update flow
+#### Context update flow
 
 ```text
 User message
@@ -1048,7 +1048,7 @@ update_context()
 ConversationContext
 ```
 
-### Update strategy
+#### Update strategy
 
 | Field              | Behavior | Reason                          |
 | ------------------ | -------- | ------------------------------- |
@@ -1061,13 +1061,13 @@ ConversationContext
 
 ---
 
-## 14. Azure OpenAI Layer
+### 14. Azure OpenAI Layer
 
 `src/infrastructure/azure_openai.py` talks to Azure OpenAI.
 
 It belongs in `infrastructure`, not `utils`, because it connects to an external system.
 
-### Main responsibilities
+#### Main responsibilities
 
 * create Azure OpenAI client
 * build system/user messages
@@ -1078,7 +1078,7 @@ It belongs in `infrastructure`, not `utils`, because it connects to an external 
 * invoke tools
 * call LLM again for final response
 
-### LLM call with tools
+#### LLM call with tools
 
 ```python
 response = await self.client.chat.completions.create(
@@ -1095,7 +1095,7 @@ response = await self.client.chat.completions.create(
 
 ---
 
-## 15. Tool Calling Flow
+### 15. Tool Calling Flow
 
 ```text
 1. User asks question
@@ -1112,7 +1112,7 @@ The LLM does not execute the tool itself. It only returns the intent to call a t
 
 ---
 
-## 16. Tool Schema vs Tool Type vs Tool Function
+### 16. Tool Schema vs Tool Type vs Tool Function
 
 | Part          | Purpose                                |
 | ------------- | -------------------------------------- |
@@ -1120,7 +1120,7 @@ The LLM does not execute the tool itself. It only returns the intent to call a t
 | Tool type     | Pydantic validation for backend safety |
 | Tool function | Actual executable Python logic         |
 
-### Tool schema
+#### Tool schema
 
 ```python
 SEARCH_FLIGHTS_TOOL = {
@@ -1141,7 +1141,7 @@ SEARCH_FLIGHTS_TOOL = {
 }
 ```
 
-### Tool type
+#### Tool type
 
 ```python
 class SearchFlightsArgs(BaseModel):
@@ -1150,7 +1150,7 @@ class SearchFlightsArgs(BaseModel):
     max_results: int | None = 10
 ```
 
-### Tool function
+#### Tool function
 
 ```python
 async def search_flights(self, airport: str | None = None, direction: str | None = None, max_results: int | None = 10):
@@ -1159,7 +1159,7 @@ async def search_flights(self, airport: str | None = None, direction: str | None
 
 ---
 
-## 17. Semantic Kernel Tool Invocation
+### 17. Semantic Kernel Tool Invocation
 
 ```python
 tool_result = await self.kernel.invoke(
@@ -1182,7 +1182,7 @@ Always unwrap and normalize before sending the result back to the LLM.
 
 ---
 
-## 18. Flight Skill Layer
+### 18. Flight Skill Layer
 
 `src/skills/flight_skill.py` is the tool/plugin layer.
 
@@ -1210,9 +1210,9 @@ class FlightSkill:
 
 ---
 
-## 19. Error Handling
+### 19. Error Handling
 
-### HTTP request lifecycle
+#### HTTP request lifecycle
 
 ```python
 response = await client.get(...)
@@ -1232,7 +1232,7 @@ Validating structure is not automatic. You must decide whether to return fallbac
 
 ---
 
-## 20. Session TTL
+### 20. Session TTL
 
 TTL means Time To Live.
 
@@ -1254,9 +1254,9 @@ Cleanup first establishes a system invariant: expired sessions should not be use
 
 ---
 
-## 21. Common Errors and Fixes
+### 21. Common Errors and Fixes
 
-### Error 1 — `ChatHistory` has no `to_string()`
+#### Error 1 — `ChatHistory` has no `to_string()`
 
 ```text
 'ChatHistory' object has no attribute 'to_string'
@@ -1266,7 +1266,7 @@ Fix: do not send `chat_history.to_string()` from Chainlit.
 
 The backend orchestrator already stores authoritative conversation history.
 
-### Error 2 — Azure deployment not found
+#### Error 2 — Azure deployment not found
 
 ```text
 DeploymentNotFound
@@ -1277,7 +1277,7 @@ Fix:
 * create a deployment in Azure AI Foundry
 * ensure `AZURE_OPENAI_DEPLOYMENT_NAME` matches the deployment name exactly
 
-### Error 3 — Semantic Kernel function not found
+#### Error 3 — Semantic Kernel function not found
 
 ```text
 KernelFunctionNotFoundError: Function 'list_flights' not found in plugin 'flight_skill'
@@ -1308,7 +1308,7 @@ async def save_conversation_state(self, conversation: Conversation):
 
 Save the whole `Conversation` object instead of passing `message` and `role` separately.
 
-### Error 5 — Strict JSON schema missing `required`
+#### Error 5 — Strict JSON schema missing `required`
 
 ```text
 Invalid schema for response_format 'context_update'
@@ -1320,7 +1320,7 @@ When using strict JSON schema, every object with `properties` must also include 
 
 ---
 
-## 22. Business Logic vs Infrastructure Logic
+### 22. Business Logic vs Infrastructure Logic
 
 | Layer                | Example                                                 | Responsibility                          |
 | -------------------- | ------------------------------------------------------- | --------------------------------------- |
@@ -1334,7 +1334,7 @@ Do not put Azure OpenAI code in `utils`, because it is not a generic helper. It 
 
 ---
 
-## 23. Async Rules
+### 23. Async Rules
 
 Use `async` when the function needs to `await` something.
 
@@ -1357,7 +1357,7 @@ await gets the actual result
 
 ---
 
-## 24. Future Improvements
+### 24. Future Improvements
 
 * Move session storage from memory to Redis
 * Add persistent database storage
@@ -1371,7 +1371,7 @@ await gets the actual result
 
 ---
 
-## 25. Key Takeaways
+### 25. Key Takeaways
 
 * `Chainlit` controls the chat UI.
 * `FastAPI` exposes backend routes.
@@ -1387,6 +1387,6 @@ await gets the actual result
 
 ---
 
-## License
+### License
 
 MIT
