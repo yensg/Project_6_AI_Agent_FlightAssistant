@@ -72,7 +72,7 @@ FlightDirection = Literal["arrival", "departure"]
 
 class SearchFlightsArgs(BaseModel):
     airport: str = "SIN"
-    direction: FlightDirection = "arrival"
+    direction: FlightDirection
     max_results: Optional[int] = 5
 
     departure_airport: Optional[str] = None

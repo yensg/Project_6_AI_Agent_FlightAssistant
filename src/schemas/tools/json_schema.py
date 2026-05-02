@@ -86,12 +86,17 @@ SEARCH_FLIGHTS_TOOL = {
                     "type": "string",
                     "description": "Arrival airport IATA code, e.g. SIN"
                 },
+                "direction": {
+                    "type": "string",
+                    "enum": ["arrival", "departure"],
+                    "description": "Use departure for flights leaving the airport, arrival for flights coming into the airport."
+                },
                 "max_results": {
                     "type": "integer",
                     "description": "Maximum number of flights to return"
                 }
             },
-            "required": []
+            "required": ["airport", "direction"]
         }
     }
 }
