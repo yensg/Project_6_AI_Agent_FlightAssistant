@@ -1289,7 +1289,7 @@ Fix:
 * ensure function name matches the tool schema
 * ensure the skill is registered as a plugin
 
-### Error 4 — `save_conversation_state()` missing arguments
+#### Error 4 — `save_conversation_state()` missing arguments
 
 ```text
 TypeError: Orchestrator.save_conversation_state() missing 2 required positional arguments
