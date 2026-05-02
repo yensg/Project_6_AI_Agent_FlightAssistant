@@ -1,230 +1,138 @@
-# ✈️ AI Agent Flight Assistant (RoamMind)
+# ✈️ Yen's AI Agent Flight Assistant
 
 ## 📌 Overview
 
-RoamMind is a **stateful, agentic AI flight assistant** built with:
+Yen's AI Agent Flight Assistant is a **stateful, tool-augmented AI flight assistant** built with:
 
-* **FastAPI** → Backend API layer
-* **Chainlit** → Interactive chat UI
+* **FastAPI** → backend API layer
+* **Chainlit** → interactive chat UI
 * **Azure OpenAI** → LLM reasoning
-* **Semantic Kernel** → Tool orchestration
-* **Pydantic** → Data validation & schema enforcement
+* **Semantic Kernel** → tool execution layer
+* **Pydantic** → schema validation
 
-The system follows a **full agentic loop**:
+This system is **NOT a full agentic loop**, but a:
 
-1. Understand user intent
-2. Extract structured data
-3. Update conversation context
-4. Decide tool usage
-5. Execute tools
-6. Generate final response
+> ✅ **Single-step reasoning system with optional tool execution + persistent context**
 
 ---
 
-## 🧠 Architecture
+## 🧠 System Architecture
 
 ```
-Chainlit (UI)
+Chainlit UI
+   ↓ (httpx)
+FastAPI API
    ↓
-HTTP (httpx)
+Orchestrator
    ↓
-FastAPI (API Layer)
+AzureOpenAIService (LLM)
    ↓
-Orchestrator (State + Control Flow)
+(Optional) Tool Call
    ↓
-AzureOpenAIService (LLM Reasoning)
-   ↓
-Tools / Skills (Flight APIs)
+FlightSkill (API)
    ↓
 Response → UI
 ```
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Core Behavior
 
-### 1. Create Virtual Environment
+### Execution Flow (Current Design)
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m ensurepip --upgrade
-python -m pip install --upgrade pip setuptools wheel
+```
+1. User sends message
+2. LLM processes message
+3. LLM decides:
+   → Respond directly
+   → OR call a tool
+4. If tool is called:
+   → Backend executes tool
+   → Return result
+5. Response sent to UI
 ```
 
-### 2. Install Dependencies
+### ❗ Important
 
-```bash
-pip install aiohttp openai pydantic semantic-kernel python-dotenv fastapi uvicorn chainlit httpx
-pip freeze > requirements.txt
-```
+This is **NOT an agentic loop** because:
 
-### 3. Setup Git
-
-```bash
-git init
-touch .gitignore
-git add .
-git commit -m "Initial commit"
-
-git branch -M main
-git remote add origin <repo-url>
-git push -u origin main
-```
+* No iterative reasoning
+* No multi-step planning
+* No repeated LLM calls
 
 ---
 
-## 🔐 Environment Variables (.env)
-
-```env
-AZURE_OPENAI_API_KEY=...
-AZURE_OPENAI_ENDPOINT=...
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
-
-AVIATIONSTACK_ACCESS_KEY=...
-```
-
----
-
-## 🚀 Running the App
-
-### Run both FastAPI + Chainlit
-
-```bash
-python src/main.py
-```
-
-### Access:
-
-* FastAPI → http://127.0.0.1:8000
-* Chainlit UI → http://127.0.0.1:8501
-
----
-
-## 🧩 Core Components
+## 🧩 Key Components
 
 ### 1. Orchestrator
 
 Responsible for:
 
-* Session lifecycle (create → use → update → expire)
-* Calling LLM
-* Updating context
-* Managing conversation history
+* session management
+* conversation lifecycle
+* calling LLM
+* updating context
 
-```python
-process_message():
-    cleanup()        # expire sessions
-    get_or_create()  # create session
-    run_agent()      # execute logic
-    save_state()     # persist updates
+```
+cleanup → create → process → update
 ```
 
 ---
 
-### 2. Conversation Models
+### 2. Conversation System
 
 #### Message
 
-Stores raw chat history
-
-```python
-content, role, timestamp
-```
+Stores raw chat messages
 
 #### ConversationContext
 
-Stores structured memory
+Stores structured memory:
 
-```python
-last_intent
-last_entities
-preferences
-memory
-```
+* last intent
+* entities
+* preferences
+* inferred defaults
 
 #### Conversation
 
-Container for session state
+Container for full session
 
 ---
 
 ### 3. LLM Layer (AzureOpenAIService)
 
-Responsibilities:
+Handles:
 
-* Prompt construction
-* Structured extraction
-* Tool-calling orchestration
-
-Key idea:
-
-```
-LLM = THINK
-Tools = ACT
-```
+* prompt construction
+* structured extraction
+* tool-call detection
 
 ---
 
 ### 4. Tool System
 
-#### Tool Schema (LLM Interface)
+#### Tool Schema (LLM interface)
 
-```python
-{
-  "type": "function",
-  "function": {
-    "name": "search_flights",
-    "parameters": {...}
-  }
-}
+Defines:
+
 ```
-
-#### Tool Types (Validation)
-
-```python
-class SearchFlightsArgs(BaseModel):
-    airport: str
+name
+parameters
+description
 ```
 
 #### Tool Execution
 
-```python
-result = await search_flights(**validated_args)
+```
+result = await search_flights(**args)
 ```
 
 ---
 
-### 5. Agentic Loop
+### 5. Context System
 
-```python
-while True:
-    response = call_llm(messages)
-
-    if tool_call:
-        result = run_tool()
-        messages.append(tool_result)
-        continue
-
-    return final_answer
-```
-
----
-
-## 🔄 Context System
-
-### Key Layers
-
-| Layer             | Purpose               |
-| ----------------- | --------------------- |
-| Raw History       | What user said        |
-| Structured Memory | What system remembers |
-| Execution Context | What tools need       |
-
----
-
-### Context Update Flow
+#### Structured Context Flow
 
 ```
 User message
@@ -240,125 +148,150 @@ ConversationContext updated
 
 ---
 
+## 🔄 State Management
+
+### Session Store
+
+```
+session_conversations: Dict[conversation_id, (Conversation, last_active)]
+```
+
+### TTL (Session Expiry)
+
+```
+SESSION_TIMEOUT = 30 minutes
+```
+
+Expired sessions are cleaned automatically.
+
+---
+
 ## ⚠️ Important Design Concepts
 
-### 1. TTL (Session Expiry)
+### 1. LLM vs Tools
 
-```python
-SESSION_TIMEOUT = timedelta(minutes=30)
-```
-
-Ensures stale sessions are cleaned.
-
----
-
-### 2. Async Model
-
-* Use `async` only when needed
-* `await` enables concurrency
-* `async with` manages resources
+| Component | Role      |
+| --------- | --------- |
+| LLM       | reasoning |
+| Tools     | execution |
 
 ---
 
-### 3. Error Handling
+### 2. Schema Separation
 
-```python
-response.raise_for_status()
-```
-
-* Convert HTTP errors → exceptions
-* Validate response structure manually
-
----
-
-### 4. Schema Separation
-
-| Schema Type      | Purpose            |
-| ---------------- | ------------------ |
-| Canonical Schema | Guide LLM output   |
-| Typed Schema     | Validate in Python |
-| Tool Schema      | Enable tool calls  |
+| Type             | Purpose           |
+| ---------------- | ----------------- |
+| Canonical Schema | guide LLM output  |
+| Typed Schema     | validate data     |
+| Tool Schema      | enable tool calls |
 
 ---
 
-## 🧪 Common Errors & Fixes
+### 3. Async Design
 
-### ❌ ChatHistory error
+* `await` → enables concurrency
+* `async with` → resource management
+* Use async only when necessary
+
+---
+
+## 🧪 Common Errors
+
+### ChatHistory issue
 
 ```
-'ChatHistory' object has no attribute 'to_string'
+'ChatHistory' has no attribute 'to_string'
 ```
 
-✅ Fix: Remove `.to_string()`
+✅ Remove usage
 
 ---
 
-### ❌ Deployment Not Found
+### Deployment error
 
 ```
 DeploymentNotFound
 ```
 
-✅ Fix: Create deployment in Azure Foundry
+✅ Fix Azure deployment
 
 ---
 
-### ❌ Tool not found
+### Tool not found
 
 ```
 KernelFunctionNotFoundError
 ```
 
-✅ Fix:
-
-* Ensure plugin registered
-* Ensure function name matches schema
+✅ Ensure plugin registration matches schema
 
 ---
 
-### ❌ JSON Schema error
+### JSON Schema error
 
 ```
 Missing 'required'
 ```
 
-✅ Fix:
-
-* Add `"required": [...]` for all properties
+✅ Add required fields
 
 ---
 
-## 📈 Future Improvements
+## 🚧 Limitations (Current Version)
 
-* Add Redis for session persistence
-* Add streaming responses
-* Improve tool ranking logic
-* Add multi-domain support (hotel, excursion)
-* Introduce caching with TTL
-
----
-
-## 🧭 Key Takeaways
-
-* **Orchestrator = brain of system**
-* **LLM = reasoning engine**
-* **Tools = real-world execution**
-* **Context = memory**
-* **TTL = lifecycle control**
+* No multi-step reasoning
+* No tool chaining
+* No autonomous planning
+* Single LLM decision per request
 
 ---
 
-## 👨‍💻 Author Notes
+## 🚀 Future Improvements
+
+### 1. Agent Loop
+
+```
+while True:
+    call LLM
+    if tool_call:
+        run tool
+        append result
+        continue
+    break
+```
+
+### 2. Tool chaining
+
+* flight → hotel → itinerary
+
+### 3. Planning layer
+
+* multi-step task decomposition
+
+---
+
+## 🧭 Summary
+
+This system is:
+
+> ✅ Stateful
+> ✅ Tool-augmented
+> ✅ Schema-driven
+> ❌ Not fully agentic (yet)
+
+---
+
+## 👨‍💻 Notes
 
 This project demonstrates:
 
-* Agentic system design
-* Structured LLM workflows
-* Clean separation of concerns
-* Production-ready backend patterns
+* real-world backend architecture
+* LLM + tool integration
+* structured context memory
+* production-ready patterns
 
 ---
 
 ## 📜 License
 
-MIT License
+MIT
