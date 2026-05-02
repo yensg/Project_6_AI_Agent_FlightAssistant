@@ -287,7 +287,9 @@ This project demonstrates:
 
 ---
 
-## Framework to build this project with FastAPI, Chainlit, Azure OpenAI, Semantic Kernel, Pydantic, and external flight APIs.
+## The step by step guide to build this agentic AI Flight Assistant
+
+A stateful flight assistant built with FastAPI, Chainlit, Azure OpenAI, Semantic Kernel, Pydantic, and external flight APIs.
 
 The project demonstrates how to build an agentic AI application that can:
 
