@@ -9,9 +9,11 @@ class Settings(BaseSettings):
     azure_openai_api_key: str
     azure_openai_endpoint: str
     azure_openai_api_version: str = "2023-03-15-preview"
-    cosmos_connection_string: Optional[str] = None
-    flight_api_key: Optional[str] = None
-    flight_api_base_url: Optional[str] = None
+    azure_openai_deployment_name: str
+    # cosmos_connection_string: Optional[str] = None
+    # flight_api_key: Optional[str] = None
+    # flight_api_base_url: Optional[str] = None
+    aviationstack_access_key: str
 
     @field_validator('azure_openai_api_key', 'azure_openai_endpoint')
     @classmethod

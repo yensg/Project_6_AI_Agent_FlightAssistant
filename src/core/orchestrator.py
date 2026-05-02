@@ -55,22 +55,26 @@ class Orchestrator:
         for conversation_id in expired_ids:
             del session_conversations[conversation_id]
 
-    async def save_conversation_state(self, conversation_id: str, message: str, role: str) -> None:
+    async def save_conversation_state(self, conversation: Conversation) -> None:
         """Save conversation state in memory with timestamp."""
         try:
             self._cleanup_expired_sessions()
+            # if conversation_id not in session_conversations:
+            #     conversation = Conversation(
+            #         id=conversation_id,
+            #         context=ConversationContext(),
+            #         messages=[]
+            #     )
+            #     session_conversations[conversation_id] = (conversation, datetime.now(timezone.utc))
+            #
+            # conversation, _ = session_conversations[conversation_id]
+            # conversation.add_message(content=message, role=role)
+            # session_conversations[conversation_id] = (conversation, datetime.now(timezone.utc))
 
-            if conversation_id not in session_conversations:
-                conversation = Conversation(
-                    id=conversation_id,
-                    context=ConversationContext(),
-                    messages=[]
-                )
-                session_conversations[conversation_id] = (conversation, datetime.now(timezone.utc))
-
-            conversation, _ = session_conversations[conversation_id]
-            conversation.add_message(content=message, role=role)
-            session_conversations[conversation_id] = (conversation, datetime.now(timezone.utc))
+            session_conversations[conversation.id] = (
+                conversation,
+                datetime.now(timezone.utc)
+            )
 
         except Exception as e:
             self.logger.error(f"Error saving conversation state: {str(e)}")

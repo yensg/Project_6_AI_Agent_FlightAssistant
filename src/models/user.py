@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Dict, List, Any
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, Dict, List, Any
 
 class UserInput(BaseModel):
     message: str

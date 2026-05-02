@@ -95,7 +95,7 @@ async def main(message: cl.Message):
                 method="POST",
                 data={
                     "message": message.content,
-                    "chat_history": chat_history.to_string()
+                    # "chat_history": chat_history.to_string()
                 }
             )
 

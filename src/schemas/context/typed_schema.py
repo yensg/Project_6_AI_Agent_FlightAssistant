@@ -186,6 +186,6 @@ class ConversationContext(BaseModel):
         "max_results": 10
     })
     memory: Dict[str, Any] = Field(default_factory=lambda: {
-        "airport": "WSSS"
+        "airport": "SIN"
     })
     unresolved_slots: List[str] = Field(default_factory=list)

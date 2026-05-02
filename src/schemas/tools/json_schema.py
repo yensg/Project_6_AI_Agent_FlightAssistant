@@ -78,8 +78,21 @@ SEARCH_FLIGHTS_TOOL = {
     "type": "function",
     "function": {
         "name": "search_flights",
-        "description": "Search flights",
-        "parameters": SearchFlightsArgs.model_json_schema()
+        "description": "Search recent/current flights arriving at an airport using IATA airport code.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "airport": {
+                    "type": "string",
+                    "description": "Arrival airport IATA code, e.g. SIN"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of flights to return"
+                }
+            },
+            "required": []
+        }
     }
 }
 
@@ -131,8 +144,8 @@ LIST_FLIGHTS_TOOL = {
 }
 
 FLIGHT_TOOLS = [
-    GET_FLIGHT_DETAILS_TOOL,
+    # GET_FLIGHT_DETAILS_TOOL,
     SEARCH_FLIGHTS_TOOL,
-    COUNT_FLIGHTS_TOOL,
-    LIST_FLIGHTS_TOOL,
+    # COUNT_FLIGHTS_TOOL,
+    # LIST_FLIGHTS_TOOL,
 ]

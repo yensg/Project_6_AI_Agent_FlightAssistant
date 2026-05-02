@@ -59,7 +59,11 @@ class FlightSkill:
     #         }
     #     }
 
-    @kernel_function(name="search_flights", description="Search recent/current flights arriving at an airport using IATA airport code")
+    @kernel_function(
+        name="search_flights",
+        description="Search flights arriving at or departing from an airport using IATA airport code"
+    )
+    # @kernel_function(name="search_flights", description="Search recent/current flights arriving at an airport using IATA airport code")
     async def search_flights(
         self,
         # airport: str,
@@ -72,6 +76,7 @@ class FlightSkill:
         # destination_city: str | None = None,
         # date: str | None = None,
         airport: str = "SIN",
+        direction: str = "arrival",
         max_results: int | None = 5,
 
     ) -> Dict[str, Any]:
@@ -84,9 +89,15 @@ class FlightSkill:
 
         params = {
             "access_key": settings.aviationstack_access_key,
-            "arr_iata": airport,
+            # "arr_iata": airport,
             "limit": max_results or 5,
         }
+
+        if direction == "departure":
+            params["dep_iata"] = airport
+        else:
+            params["arr_iata"] = airport
+
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
@@ -106,6 +117,7 @@ class FlightSkill:
                 logger.error(f"HTTP error: {e.response.status_code} - {e.response.text}")
                 return {
                     "airport": airport,
+                    "direction": direction,
                     "count": 0,
                     "flights": [],
                     "error": f"API error {e.response.status_code}"
@@ -115,6 +127,7 @@ class FlightSkill:
                 logger.error(f"Network error: {str(e)}")
                 return {
                     "airport": airport,
+                    "direction": direction,
                     "count": 0,
                     "flights": [],
                     "error": "Network error"
@@ -124,6 +137,7 @@ class FlightSkill:
                 logger.error(f"JSON parse error: {str(e)}")
                 return {
                     "airport": airport,
+                    "direction": direction,
                     "count": 0,
                     "flights": [],
                     "error": "Invalid JSON response"
@@ -143,6 +157,7 @@ class FlightSkill:
             logger.warning("Unexpected API response format")
             return {
                 "airport": airport,
+                "direction": direction,
                 "count": 0,
                 "flights": [],
                 "message": "Unexpected API response format"
@@ -150,6 +165,7 @@ class FlightSkill:
 
         return {
             "airport": airport,
+            "direction": direction,
             "count": len(flights),
             # "flights": data[:max_results] if max_results else data
             "flights": flights

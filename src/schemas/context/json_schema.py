@@ -41,6 +41,22 @@ CONTEXT_UPDATE_JSON_SCHEMA = {
                 "time_from": {"type": ["string", "null"]},
                 "time_to": {"type": ["string", "null"]}
             },
+            "required": [
+                "flight_number",
+                "callsign",
+                "icao24",
+                "airline",
+                "airport",
+                "departure_airport",
+                "arrival_airport",
+                "direction",
+                "origin_city",
+                "destination_city",
+                "date",
+                "local_day",
+                "time_from",
+                "time_to"
+            ],
             "additionalProperties": False
         },
         "aggregation": {
@@ -63,6 +79,11 @@ CONTEXT_UPDATE_JSON_SCHEMA = {
                 },
                 "max_results": {"type": ["integer", "null"]}
             },
+            "required": [
+                "timezone",
+                "response_mode",
+                "max_results"
+            ],
             "additionalProperties": False
         },
         "inferred_defaults": {
@@ -73,7 +94,12 @@ CONTEXT_UPDATE_JSON_SCHEMA = {
                     "type": ["string", "null"],
                     "enum": ["arrival", "departure", None]
                 }
-            }
+            },
+            "required": [
+                "airport",
+                "direction"
+            ],
+            "additionalProperties": False,
         },
         "missing_slots": {
             "type": "array",
@@ -82,6 +108,17 @@ CONTEXT_UPDATE_JSON_SCHEMA = {
         "requires_tool": {"type": ["boolean", "null"]},
         "confidence": {"type": ["number", "null"]}
     },
-    "required": ["intent", "entities"],
+    # "required": ["intent", "entities"],
+    "required": [
+        "domain",
+        "intent",
+        "entities",
+        "aggregation",
+        "preferences",
+        "inferred_defaults",
+        "missing_slots",
+        "requires_tool",
+        "confidence"
+    ],
     "additionalProperties": False
 }
